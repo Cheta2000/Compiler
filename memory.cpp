@@ -49,9 +49,9 @@ Iterator *Memory::create_iterator(std::string id)
     return static_cast<Iterator *>(this->symbols[id]);
 }
 
-void Memory::delete_iterator(std::string id)
+void Memory::delete_iterator(const std::string& id)
 {
-    if (Iterator *v = dynamic_cast<Iterator *>(this->symbols[id]))
+    if (dynamic_cast<Iterator *>(this->symbols[id]))
     {
         this->symbols[id]->set_uninit();
     }

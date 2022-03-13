@@ -45,7 +45,7 @@ protected:
 class ID_PID : public ID
 {
 public:
-    ID_PID(std::string pidentifier);
+    explicit ID_PID(std::string pidentifier);
     long long int get_memAddress() override;
     void init_ID() override;
 };

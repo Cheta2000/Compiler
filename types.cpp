@@ -42,7 +42,7 @@ Type *ID::get_variable()
 ID_PID::ID_PID(std::string pidentifier)
 {
     this->var = memory->find_in_memory(pidentifier);
-    if (Array *v = dynamic_cast<Array *>(this->var))
+    if (dynamic_cast<Array *>(this->var))
     {
         throw std::string("Invalid usage of array " + pidentifier);
     }
@@ -77,7 +77,7 @@ ID_VALUE_ARRAY::ID_VALUE_ARRAY(std::string pidentifier, long long int num)
 
 long long int ID_VALUE_ARRAY::get_memAddress()
 {
-    if (Array *v = dynamic_cast<Array *>(this->get_variable()))
+    if (auto *v = dynamic_cast<Array *>(this->get_variable()))
     {
         if (v->get_init(this->index) or this->get_variable()->get_init())
         {

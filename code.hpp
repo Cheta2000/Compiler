@@ -45,5 +45,5 @@ private:
     long long int codePointer = 0;
     void create_const(long long int value);
     void generate_dynamic_array_address(ID_PID_ARRAY *id);
-    std::string dec2bin(long long int value);
+    static std::string dec2bin(long long int value);
 };

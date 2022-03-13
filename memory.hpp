@@ -63,7 +63,7 @@ public:
     void declare_variable(std::string id);
     void declare_array(std::string id, long long int start, long long int end);
     Iterator *create_iterator(std::string id);
-    void delete_iterator(std::string id);
+    void delete_iterator(const std::string &id);
     Type *find_in_memory(std::string id);
 
 private:
