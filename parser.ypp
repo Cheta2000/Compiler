@@ -1,0 +1,135 @@
+%{
+#include <iostream>
+#include <string>
+#include <memory>
+#include <stdlib.h>
+
+#include "memory.hpp"
+#include "code.hpp"
+#include "types.hpp"
+
+
+int yylex();
+int yyerror(std::string);
+extern FILE *yyin;
+extern int yylineno;
+
+Memory* memory=new Memory();
+Code* code=new Code();
+
+%}
+
+%union{
+  long long int num;
+  std::string *pidentifier;
+  ID *identifier;
+  VALUE *value;
+  EXPRESSION *expression;
+  CONDITION *condition;
+  std::vector<COMMAND*> *commands;
+  COMMAND* command;
+}
+
+%token<num> num
+%token<pidentifier> pidentifier
+%type<value> value
+%type<identifier> identifier
+%type<expression> expression
+%type<condition> condition
+%type<commands> commands
+%type<command> command
+
+
+%start program
+
+%token VAR BEGIN_P END
+%token ASSIGN
+%token IF THEN ELSE ENDIF
+%token WHILE DO ENDWHILE
+%token REPEAT UNTIL
+%token FOR FROM TO DOWNTO ENDFOR
+%token READ WRITE
+%token EQ NEQ LE GE LEQ GEQ
+
+%left PLUS MINUS 
+%left TIMES DIV MOD
+
+%%
+    program: VAR declarations BEGIN_P commands END {code->run_program($4);}
+    | BEGIN_P commands END {code->run_program($2);}
+    ;
+
+    declarations: declarations ',' pidentifier {memory->declare_variable(*$3);}
+    | declarations ',' pidentifier '[' num ':' num ']' {memory->declare_array(*$3,$5,$7);}
+    | pidentifier {memory->declare_variable(*$1);}
+    | pidentifier '[' num ':' num ']' {memory->declare_array(*$1,$3,$5);}
+    ;
+
+    commands: commands command {$1->push_back($2); $$ = $1;}
+    | command {std::vector<COMMAND*> *block = new std::vector<COMMAND*>();block->push_back($1); $$ = block;}
+    ;
+
+    command: identifier ASSIGN expression ';' {$$=new ASSIGN_COMMAND($1,$3);}
+    | IF condition THEN commands ELSE commands ENDIF {$$=new IF_THEN_ELSE_COMMAND($2,$4,$6);}
+    | IF condition THEN commands ENDIF {$$=new IF_THEN_COMMAND($2,$4);}
+    | WHILE condition DO commands ENDWHILE {$$=new WHILE_COMMAND($2,$4);}
+    | REPEAT commands UNTIL condition ';' {$$=new REPEAT_COMMAND($2,$4);}
+    | FOR pidentifier FROM value TO value DO commands ENDFOR {$$=new FOR_UP_COMMAND(*$2,$4,$6,$8);}
+    | FOR pidentifier FROM value DOWNTO value DO commands ENDFOR {$$=new FOR_DOWN_COMMAND(*$2,$4,$6,$8);}
+    | READ identifier ';' {$$=new READ_COMMAND($2);}
+    | WRITE value ';' {$$=new WRITE_COMMAND($2);}
+    ;
+
+    expression: value {$$=new EXPRESSION_VALUE($1);}
+    | value PLUS value {$$=new EXPRESSION_BINARY($1,$3,BINARY::PLUS);}
+    | value MINUS value {$$=new EXPRESSION_BINARY($1,$3,BINARY::MINUS);}
+    | value TIMES value {$$=new EXPRESSION_BINARY($1,$3,BINARY::TIMES);}
+    | value DIV value {$$=new EXPRESSION_BINARY($1,$3,BINARY::DIV);}
+    | value MOD value {$$=new EXPRESSION_BINARY($1,$3,BINARY::MOD);}
+    ;
+
+    condition: value EQ value {$$=new CONDITION($1,$3,OPERATOR::EQ);}
+    | value NEQ value {$$=new CONDITION($1,$3,OPERATOR::NEQ);}
+    | value LE value {$$=new CONDITION($1,$3,OPERATOR::LE);}
+    | value GE value {$$=new CONDITION($1,$3,OPERATOR::GE);}
+    | value LEQ value {$$=new CONDITION($1,$3,OPERATOR::LEQ);}
+    | value GEQ value {$$=new CONDITION($1,$3,OPERATOR::GEQ);}
+    ;
+
+    value: num {$$=new VALUE_NUMBER($1);}
+    | identifier {$$=new VALUE_ID($1);}
+    ;
+
+    identifier: pidentifier {$$= new ID_PID(*$1);}
+    | pidentifier '[' pidentifier ']' {$$= new ID_PID_ARRAY(*$1,*$3);}
+    | pidentifier '[' num ']' {$$= new ID_VALUE_ARRAY(*$1,$3);}
+    ;
+
+%%
+
+int yyerror(std::string error)
+{  
+    std::cout<<"\033[31m"<<"[LINE: "<<std::to_string(yylineno)<<"]: "<<error<<"\033[0m\t\t"<<std::endl;
+    return 1;
+}
+
+int main(int argc,char** argv)
+{
+    yyin = fopen(argv[1], "r");
+    if (yyin != NULL) {
+    try {
+      yyparse();
+      if(argc==3){
+        code->print_to_file(argv[2]);
+      }
+      else{
+        code->print_to_file("a.out");
+      }
+    } catch(std::string msg) {
+      yyerror(msg);
+    }
+  } else {
+    exit(1);
+  }
+    return 0;
+}
